@@ -237,7 +237,13 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 	}
 
 	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) {
-		// TODO Auto-generated method stub
+		if (id == null) {
+			throw new IllegalArgumentException("Feature id cannot be null");
+		} else if (geometry == null) {
+			throw new IllegalArgumentException("Geometry cannot be null");
+		} else if (StringUtils.isEmpty(layerName)) {
+			throw new IllegalArgumentException("LayerName parameter cannot be null or empty string");
+		}
 		
 	}
 

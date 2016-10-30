@@ -44,6 +44,7 @@ public class ShapefileFeatureDAOTest {
 	private final String BAD_WKT = "POINT (347986.557996313727926 650018.791745546972379)";
 	private WKTReader reader;
 	private final static String LAYER_NAME = "test_shapefile";
+	
 	@Before
 	public void setUp() throws Exception {
 		clearShp();
@@ -58,6 +59,31 @@ public class ShapefileFeatureDAOTest {
 		clearShp();
 	}
 	
+	private void copyShp() throws Exception {
+		File shp_folder = new File("src/test/resources/test_shapefile");
+		File shp_folder_copy = new File("src/test/resources/test_shapefile_copy/test_shapefile");
+		for (String shp_part_name: shp_folder.list()) {
+			File shp_part = new File(shp_folder, shp_part_name);
+			File shp_part_copy = new File(shp_folder_copy, shp_part_name);
+			InputStream in = new BufferedInputStream(new FileInputStream(shp_part));
+			OutputStream out = new BufferedOutputStream(new FileOutputStream(shp_part_copy));
+			byte[] buff = new byte[1024];
+			int length;
+			while ((length = in.read(buff)) > 0) {
+				out.write(buff, 0, length);
+			}
+			in.close();
+			out.close();
+		}
+	}
+	
+	private void clearShp() throws Exception {
+		File shp_folder_copy = new File("src/test/resources/test_shapefile_copy/test_shapefile");
+		for (File file: shp_folder_copy.listFiles()) {
+			file.delete();
+		}
+	}
+	
 	// create tests
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -66,16 +92,12 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test(expected=LayerDataSourceNotAvailableException.class)
-	public void createFeature_notExistingLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException {
+	public void createFeature_notExistingLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, ParseException {
 		Feature feature = new Feature();
-		try {
-			Geometry geom = reader.read(WKT);
-			feature.setGeom(geom);
-			dao.createFeature(feature, "fake_layername");
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		
+
+		Geometry geom = reader.read(WKT);
+		feature.setGeom(geom);
+		dao.createFeature(feature, "fake_layername");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -103,139 +125,138 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test
-	public void createFeature_properFeatureGeometryNoAttributes_shouldReturnNewFetureId() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException {
+	public void createFeature_properFeatureGeometryNoAttributes_shouldReturnNewFetureId() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, ParseException {
 		Feature feature = new Feature();
-		try {
-			Geometry geom = reader.read(WKT);
-			feature.setGeom(geom);
-			Long id = dao.createFeature(feature, LAYER_NAME);
-			assertNotNull(id);
-			assertEquals(new Long(4), id);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+	
+		Geometry geom = reader.read(WKT);
+		feature.setGeom(geom);
+		Long id = dao.createFeature(feature, LAYER_NAME);
+		assertNotNull(id);
+		assertEquals(new Long(4), id);
+
 	}
 	
 	@Test
-	public void createFeature_properFeatureGeometryWithAttributes_shouldReturnNewFeatureId() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+	public void createFeature_properFeatureGeometryWithAttributes_shouldReturnNewFeatureId() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		feature.addAttribute(textAttr);
 		feature.addAttribute(doubleAttr);
-		try {
-			Geometry geom = reader.read(WKT);
-			feature.setGeom(geom);
-			Long id = dao.createFeature(feature, LAYER_NAME);
-			assertNotNull(id);
-			Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
-			assertEquals(new Long(4), resultFeature.getId());
-			assertEquals("test", (String) resultFeature.getAttribute("name").getValue());
-			assertEquals(new Double(4.44), (Double) resultFeature.getAttribute("count").getValue());
-			assertNotNull(resultFeature.getAttribute("date"));
-			assertNull(resultFeature.getAttribute("date").getValue());
-			assertTrue(geom.equals(resultFeature.getGeom()));
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+
+		Geometry geom = reader.read(WKT);
+		feature.setGeom(geom);
+		Long id = dao.createFeature(feature, LAYER_NAME);
+		assertNotNull(id);
+		Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
 		
+		assertEquals(new Long(4), resultFeature.getId());
+		assertEquals("test", (String) resultFeature.getAttribute("name").getValue());
+		assertEquals(new Double(4.44), (Double) resultFeature.getAttribute("count").getValue());
+		assertNotNull(resultFeature.getAttribute("date"));
+		assertNull(resultFeature.getAttribute("date").getValue());
+		assertTrue(geom.equals(resultFeature.getGeom()));	
 	}
 	
 	@Test(expected=BrokenFeatureException.class)
-	public void createFeature_badGeometryType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+	public void createFeature_badGeometryType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
 		feature.addAttribute(textAttr);
 		feature.addAttribute(doubleAttr);
-		try {
-			Geometry geom = reader.read(BAD_WKT);
-			feature.setGeom(geom);
-			dao.createFeature(feature, LAYER_NAME);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		
+
+		Geometry geom = reader.read(BAD_WKT);
+		feature.setGeom(geom);
+		dao.createFeature(feature, LAYER_NAME);
 	}
 	
 	@Test(expected=BrokenFeatureException.class)
-	public void createFeature_badGeometryCRSType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+	public void createFeature_badGeometryCRSType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
 		feature.addAttribute(textAttr);
 		feature.addAttribute(doubleAttr);
-		try {
-			Geometry geom = reader.read(WKT);
-			//Test shapefile has SRID=2180
-			geom.setSRID(2179);
-			feature.setGeom(geom);
-			dao.createFeature(feature, LAYER_NAME);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+
+		Geometry geom = reader.read(WKT);
+		//Test shapefile has SRID=2180
+		geom.setSRID(2179);
+		feature.setGeom(geom);
+		dao.createFeature(feature, LAYER_NAME);
 	}
 	
 	@Test
-	public void createFeature_featureContainsWrongAttributeNames_shouldIgnoreWrongAttributes() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+	public void createFeature_featureContainsWrongAttributeNames_shouldIgnoreWrongAttributes() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		feature.addAttribute(textAttr);
 		feature.addAttribute(doubleAttr);
 		
 		Attribute textAttr_fake = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr_fake = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		feature.addAttribute(textAttr_fake);
 		feature.addAttribute(doubleAttr_fake);
-		try {
-			Geometry geom = reader.read(WKT);
-			feature.setGeom(geom);
-			Long id = dao.createFeature(feature, LAYER_NAME);
-			Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
-			assertNull(resultFeature.getAttribute("name_fake"));
-			assertNull(resultFeature.getAttribute("count_fake"));
-			assertNotNull(resultFeature.getAttribute("name"));
-			assertNotNull(resultFeature.getAttribute("count"));
-			assertEquals("test", (String) resultFeature.getAttribute("name").getValue());
-			assertEquals(new Double(4.44), (Double) resultFeature.getAttribute("count").getValue());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+
+		Geometry geom = reader.read(WKT);
+		feature.setGeom(geom);
+		Long id = dao.createFeature(feature, LAYER_NAME);
+		Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
+		assertNull(resultFeature.getAttribute("name_fake"));
+		assertNull(resultFeature.getAttribute("count_fake"));
+		assertNotNull(resultFeature.getAttribute("name"));
+		assertNotNull(resultFeature.getAttribute("count"));
+		assertEquals("test", (String) resultFeature.getAttribute("name").getValue());
+		assertEquals(new Double(4.44), (Double) resultFeature.getAttribute("count").getValue());
+
 	}
 	
 	@Test
-	public void createFeature_featureContainsWrongAttributeTypes_shouldIgnoreWrongAttributes() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+	public void createFeature_featureContainsWrongAttributeTypes_shouldIgnoreWrongAttributes() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.LONG);
 		textAttr.setValue(123L);
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		feature.addAttribute(textAttr);
 		feature.addAttribute(doubleAttr);
-		try {
-			Geometry geom = reader.read(WKT);
-			feature.setGeom(geom);
-			Long id = dao.createFeature(feature, LAYER_NAME);
-			Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
-			assertNull(resultFeature.getAttribute("name").getValue());
-			assertEquals(new Double(4.44), resultFeature.getAttribute("count").getValue());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		
+		Geometry geom = reader.read(WKT);
+		feature.setGeom(geom);
+		Long id = dao.createFeature(feature, LAYER_NAME);
+		Feature resultFeature = dao.getFeatureById(id, LAYER_NAME);
+		assertNull(resultFeature.getAttribute("name").getValue());
+		assertEquals(new Double(4.44), resultFeature.getAttribute("count").getValue());
+
 	}
 	
-	// update tests
+	// update attribute tests
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void updateFeatureAttributes_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
@@ -265,13 +286,17 @@ public class ShapefileFeatureDAOTest {
 	@Test
 	public void updateFeatureAttributes_allAttributesAreValid_shouldUpdateAllAttributes() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
 		List<Attribute> attributes = new ArrayList<Attribute>();
+		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
 		Attribute dateAttr = new Attribute("date", AttributeType.DATE);
+		
 		Calendar calendar = new GregorianCalendar(2000, 1, 1);
 		dateAttr.setValue(calendar.getTime());
+		
 		attributes.add(textAttr);
 		attributes.add(doubleAttr);
 		attributes.add(dateAttr);
@@ -283,15 +308,19 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test
-	public void updateFeatureAttributes_attributesContainInvalidNames_shouldIgnoreBrokenAttribute() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+	public void updateFeatureAttributes_someAttributesContainInvalidNames_shouldIgnoreBrokenAttributes() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
 		List<Attribute> attributes = new ArrayList<Attribute>();
+		
 		Attribute textAttr = new Attribute("bad_name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		Attribute dateAttr = new Attribute("date", AttributeType.DATE);
 		Calendar calendar = new GregorianCalendar(2000, 1, 1);
 		dateAttr.setValue(calendar.getTime());
+		
 		attributes.add(textAttr);
 		attributes.add(doubleAttr);
 		attributes.add(dateAttr);
@@ -303,15 +332,19 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test
-	public void updateFeatureAttributes_allAttributesContainInvalidNames_shouldIgnoreBrokenAttribute() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+	public void updateFeatureAttributes_allAttributesContainInvalidNames_shouldIgnoreBrokenAttributes() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
 		List<Attribute> attributes = new ArrayList<Attribute>();
+		
 		Attribute textAttr = new Attribute("bad_name", AttributeType.TEXT);
 		textAttr.setValue("test");
+		
 		Attribute doubleAttr = new Attribute("bad_name2", AttributeType.DOUBLE);
 		doubleAttr.setValue(4.44);
+		
 		Attribute dateAttr = new Attribute("bad_name3", AttributeType.DATE);
 		Calendar calendar = new GregorianCalendar(2000, 1, 1);
 		dateAttr.setValue(calendar.getTime());
+		
 		attributes.add(textAttr);
 		attributes.add(doubleAttr);
 		attributes.add(dateAttr);
@@ -322,29 +355,77 @@ public class ShapefileFeatureDAOTest {
 		assertEquals(null, feature.getAttribute("date").getValue());
 	}
 	
-	private void copyShp() throws Exception {
-		File shp_folder = new File("src/test/resources/test_shapefile");
-		File shp_folder_copy = new File("src/test/resources/test_shapefile_copy/test_shapefile");
-		for (String shp_part_name: shp_folder.list()) {
-			File shp_part = new File(shp_folder, shp_part_name);
-			File shp_part_copy = new File(shp_folder_copy, shp_part_name);
-			InputStream in = new BufferedInputStream(new FileInputStream(shp_part));
-			OutputStream out = new BufferedOutputStream(new FileOutputStream(shp_part_copy));
-			byte[] buff = new byte[1024];
-			int length;
-			while ((length = in.read(buff)) > 0) {
-				out.write(buff, 0, length);
-			}
-			in.close();
-			out.close();
-		}
+	@Test
+	public void updateFeatureAttributes_someAttributesContainInvalidValueTypes_shouldIgnoreInvalidValueTypes() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		
+		Attribute textAttr = new Attribute("name", AttributeType.DOUBLE);
+		textAttr.setValue(4.44);
+		
+		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
+		doubleAttr.setValue(4.44);
+		
+		Attribute dateAttr = new Attribute("date", AttributeType.DATE);
+		Calendar calendar = new GregorianCalendar(2000, 1, 1);
+		dateAttr.setValue(calendar.getTime());
+		
+		attributes.add(textAttr);
+		attributes.add(doubleAttr);
+		attributes.add(dateAttr);
+		dao.updateFeatureAttributes(1L, attributes, LAYER_NAME);
+		Feature feature = dao.getFeatureById(1L, LAYER_NAME);
+		assertEquals("name1", feature.getAttribute("name").getValue());
+		assertEquals(new Double(4.44), feature.getAttribute("count").getValue());
+		assertEquals(calendar.getTime(), feature.getAttribute("date").getValue());
 	}
 	
-	private void clearShp() throws Exception {
-		File shp_folder_copy = new File("src/test/resources/test_shapefile_copy/test_shapefile");
-		for (File file: shp_folder_copy.listFiles()) {
-			file.delete();
-		}
+	@Test
+	public void updateFeatureAttributes_allAttributesContainInvalidValueTypes_shouldIgnoreInvalidValueTypes() throws UnsupportedAttributeType, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		
+		Attribute textAttr = new Attribute("count", AttributeType.TEXT);
+		textAttr.setValue("name1");
+		
+		Attribute doubleAttr = new Attribute("date", AttributeType.DOUBLE);
+		doubleAttr.setValue(4.44);
+		
+		Attribute dateAttr = new Attribute("name", AttributeType.DATE);
+		Calendar calendar = new GregorianCalendar(2000, 1, 1);
+		dateAttr.setValue(calendar.getTime());
+		
+		attributes.add(textAttr);
+		attributes.add(doubleAttr);
+		attributes.add(dateAttr);
+		dao.updateFeatureAttributes(1L, attributes, LAYER_NAME);
+		Feature feature = dao.getFeatureById(1L, LAYER_NAME);
+		assertEquals("name1", feature.getAttribute("name").getValue());
+		assertEquals(new Double(1.11), feature.getAttribute("count").getValue());
+		assertEquals(null, feature.getAttribute("date").getValue());
 	}
+	
+	// update gemoetry test
+	@Test(expected=IllegalArgumentException.class)
+	public void updateFeatureGeometry_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+		Geometry geom = reader.read(WKT);
+		dao.updateFeatureGeometry(null, geom, LAYER_NAME);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void updateFeatureGeometry_nullGeometry_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		dao.updateFeatureGeometry(1L, null, LAYER_NAME);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void updateFeatureGeometry_nullLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+		Geometry geom = reader.read(WKT);
+		dao.updateFeatureGeometry(1L, geom, null);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void updateFeatureGeometry_emptyLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+		Geometry geom = reader.read(WKT);
+		dao.updateFeatureGeometry(1L, geom, null);
+	}
+	
 
 }
