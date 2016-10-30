@@ -1,0 +1,15 @@
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/attributes/Attribute.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/impl/GmlFeatureDAO.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/attributes/impl/IntAttribute.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/attributes/AttributeType.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/exceptions/LayerDataSourceNotAvailableException.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/exceptions/LayerConfigurationBrokenException.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/impl/WfsFeatureDAO.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/impl/ShapefileFeatureDAO.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/attributes/impl/DoubleAttribute.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/DAO.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/attributes/impl/StringAttribute.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/impl/DatabaseFeatureDAO.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/exceptions/BrokenFeatureException.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/model/Feature.java
+/home/cegli/Projects/workspace_1/wharyo-data/src/main/java/pl/wharyo/dao/FeatureDAO.java
