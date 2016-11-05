@@ -15,6 +15,7 @@ import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
+import org.geotools.data.FeatureStore;
 import org.geotools.data.Query;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -112,15 +113,18 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 				}
 			} catch (NoSuchAuthorityCodeException e) {
 				throw new BrokenFeatureException("Feature geometry contains unknown CRS");
-			} catch (FactoryException e) {}
-			featureBuilder.set(geomDesc.getLocalName(), feature.getGeom());
+			} catch (FactoryException e) {
+				// Nothing we can do :(
+			}
 			if (!compareGeometryTypes(feature.getGeom(), geomDesc.getType().getName().getLocalPart())) {
 				throw new BrokenFeatureException("Feature contains geometry which is not koherent with geometry type in layer: " + layerName);
 			}
+			featureBuilder.set(geomDesc.getLocalName(), feature.getGeom());
 		} else {
 			logger.error("No geometry descriptor for given shapefile layer: " + layerName);
-			throw new LayerConfigurationBrokenException("Could not obtain geometry description for given layer: " + layerName);
+			throw new LayerConfigurationBrokenException("Could not obtain geometry description for given layer: " + layerName, LayerConfigurationBrokenException.Reason.NO_GEOMETRY_METADATA);
 		}
+		
 		try {
 			Transaction transaction = new DefaultTransaction("wharyo_full_lock");
 			fStore.setTransaction(transaction);
@@ -138,6 +142,7 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 				transaction.close();
 			}
 		} catch (IOException ex) {
+			// Transaction rollback/close fail
 			return null;
 		}			
 	}
@@ -201,42 +206,47 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 			return;
 		}
 		
-		try {
-			DataStore dStore = createDataStore(layerName);
-			SimpleFeatureStore fStore = createFeatureStore(dStore, layerName);
-			Transaction transaction = new DefaultTransaction("wharyo_full_lock");
-			try {
-				fStore.setTransaction(transaction);
-				List<Name> attrNames = new ArrayList<Name>();
-				List<Object> attrValues = new ArrayList<Object>();
-				int i = 0;
-				for (Attribute attr: attributes) {
-					for (AttributeDescriptor desc : fStore.getSchema().getAttributeDescriptors()) {
-						if (desc.getName().getLocalPart().equalsIgnoreCase(attr.getName())
-								&& compareAttributeTypes(desc.getType(), attr)) {
-							attrNames.add(desc.getName());
-							attrValues.add(attr.getValue());
-							i++;
-							break;
-						}
-					}
+		
+		DataStore dStore = createDataStore(layerName);
+		SimpleFeatureStore fStore = createFeatureStore(dStore, layerName);
+		
+		List<Name> attrNames = new ArrayList<Name>();
+		List<Object> attrValues = new ArrayList<Object>();
+		int i = 0;
+		for (Attribute attr: attributes) {
+			for (AttributeDescriptor desc : fStore.getSchema().getAttributeDescriptors()) {
+				if (desc.getName().getLocalPart().equalsIgnoreCase(attr.getName())
+						&& compareAttributeTypes(desc.getType(), attr)) {
+					attrNames.add(desc.getName());
+					attrValues.add(attr.getValue());
+					i++;
+					break;
 				}
+			}
+		}
+		try {	
+			Transaction transaction = new DefaultTransaction("wharyo_full_lock");
+			fStore.setTransaction(transaction);
+			try {
 				if (i > 0) {
 					fStore.modifyFeatures(attrNames.toArray(new Name[attrNames.size()]), attrValues.toArray(), CQL.toFilter("id = " + id));
+					transaction.commit();
 				}
-				transaction.commit();
-			} catch (CQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (IOException e) {
+				transaction.rollback();
 			} finally {
 				transaction.close();
 			}
+		} catch (CQLException e) {
+			logger.error("No id filed found for shapefile: " + layerName);
+			throw new LayerConfigurationBrokenException("Coulnd't find proper id field in shapefile " + layerName, LayerConfigurationBrokenException.Reason.INVALID_ID_FIELD);
 		} catch (IOException e) {
-			e.printStackTrace();
+			// Transaction rollback/close fail
 		}
+		
 	}
 
-	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) {
+	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException {
 		if (id == null) {
 			throw new IllegalArgumentException("Feature id cannot be null");
 		} else if (geometry == null) {
@@ -245,6 +255,50 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 			throw new IllegalArgumentException("LayerName parameter cannot be null or empty string");
 		}
 		
+		DataStore dStore = createDataStore(layerName);
+		SimpleFeatureStore fStore = createFeatureStore(dStore, layerName);
+		SimpleFeatureType featureType = fStore.getSchema();
+		
+		GeometryDescriptor geomDesc = featureType.getGeometryDescriptor();
+		if (geomDesc != null) {
+			try {
+				if (geometry.getSRID() > 0 && 
+						!geomDesc.getCoordinateReferenceSystem().getCoordinateSystem()
+						.equals(CRS.decode("EPSG:" + geometry.getSRID()))) {
+					throw new BrokenFeatureException("Feature CRS doesn't match shapefile CRS");
+				} else {
+					logger.warn("Saving feature with empty geometry srid");
+				}
+			} catch (NoSuchAuthorityCodeException e) {
+				throw new BrokenFeatureException("Feature geometry contains unknown CRS");
+			} catch (FactoryException e) {
+				// Nothing we can do :(
+			}
+			if (!compareGeometryTypes(geometry, geomDesc.getType().getName().getLocalPart())) {
+				throw new BrokenFeatureException("Feature contains geometry which is not koherent with geometry type in layer: " + layerName);
+			}
+		} else {
+			logger.error("No geometry descriptor for given shapefile layer: " + layerName);
+			throw new LayerConfigurationBrokenException("Could not obtain geometry description for given layer: " + layerName, LayerConfigurationBrokenException.Reason.NO_GEOMETRY_METADATA);
+		}
+		
+		try {
+			Transaction transaction = new DefaultTransaction("wharyo_full_lock");
+			fStore.setTransaction(transaction);
+			try {
+				fStore.modifyFeatures(featureType.getGeometryDescriptor().getName(), geometry,  CQL.toFilter("id = " + id));
+				transaction.commit();
+			} catch (IOException e) {
+				transaction.rollback();
+			} finally {
+				transaction.close();
+			}
+		} catch (CQLException e) {
+			logger.error("No id filed found for shapefile: " + layerName);
+			throw new LayerConfigurationBrokenException("Coulnd't find proper id field in shapefile " + layerName, LayerConfigurationBrokenException.Reason.INVALID_ID_FIELD);
+		} catch (IOException e) {
+			// Transaction rollback/close fail
+		}
 	}
 
 	public void deleteFeature(Long id, String laterName) {
@@ -295,7 +349,7 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 					return (SimpleFeatureStore) dStore.getFeatureSource(typeName);
 				} else {
 					logger.error("Wrong typeName configuration for given shapefile: " + layerName);
-					throw new LayerConfigurationBrokenException("Coulnd't find any typeNames for shapefile " + layerName);
+					throw new LayerConfigurationBrokenException("Coulnd't find any typeNames for shapefile " + layerName, LayerConfigurationBrokenException.Reason.NO_ATTRIBUTE_METADATA);
 				}
 			} else {
 				logger.error("FeatureSource doesn't implement FeatureStore: " + layerName);
@@ -315,7 +369,7 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 			return query;
 		} catch (CQLException e) {
 			logger.error("No id filed found for shapefile: " + layerName);
-			throw new LayerConfigurationBrokenException("Coulnd't find shapefile with name " + layerName);
+			throw new LayerConfigurationBrokenException("Coulnd't find proper id field in shapefile " + layerName, LayerConfigurationBrokenException.Reason.INVALID_ID_FIELD);
 		}
 		
 	}

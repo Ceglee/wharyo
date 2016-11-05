@@ -27,7 +27,7 @@ public interface FeatureDAO {
 	
 	// U
 	public void updateFeatureAttributes(Long id, List<Attribute> attributes, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;
-	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;
+	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException;
 	
 	// D
 	public void deleteFeature(Long id, String laterName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;

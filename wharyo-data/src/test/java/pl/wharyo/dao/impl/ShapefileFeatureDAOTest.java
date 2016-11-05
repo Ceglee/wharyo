@@ -164,7 +164,7 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test(expected=BrokenFeatureException.class)
-	public void createFeature_badGeometryType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
+	public void createFeature_wrongGeometryType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
 		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
@@ -181,7 +181,7 @@ public class ShapefileFeatureDAOTest {
 	}
 	
 	@Test(expected=BrokenFeatureException.class)
-	public void createFeature_badGeometryCRSType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
+	public void createFeature_wrongGeometryCRS_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
 		Feature feature = new Feature();
 		
 		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
@@ -405,27 +405,58 @@ public class ShapefileFeatureDAOTest {
 	
 	// update gemoetry test
 	@Test(expected=IllegalArgumentException.class)
-	public void updateFeatureGeometry_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+	public void updateFeatureGeometry_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException, BrokenFeatureException {
 		Geometry geom = reader.read(WKT);
 		dao.updateFeatureGeometry(null, geom, LAYER_NAME);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void updateFeatureGeometry_nullGeometry_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+	public void updateFeatureGeometry_nullGeometry_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException {
 		dao.updateFeatureGeometry(1L, null, LAYER_NAME);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void updateFeatureGeometry_nullLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+	public void updateFeatureGeometry_nullLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException, BrokenFeatureException {
 		Geometry geom = reader.read(WKT);
 		dao.updateFeatureGeometry(1L, geom, null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void updateFeatureGeometry_emptyLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException {
+	public void updateFeatureGeometry_emptyLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException, BrokenFeatureException {
 		Geometry geom = reader.read(WKT);
-		dao.updateFeatureGeometry(1L, geom, null);
+		dao.updateFeatureGeometry(1L, geom, "");
 	}
 	
+	@Test(expected=BrokenFeatureException.class)
+	public void updateFeatureGeometry_wrongGeometryType_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, ParseException {
+		Geometry geom = reader.read(BAD_WKT);
+		dao.updateFeatureGeometry(1L, geom, LAYER_NAME);
+	}
+	
+	@Test(expected=BrokenFeatureException.class)
+	public void updateFeatureGeometry_wrongGeometryCRS_shouldThrowException() throws ParseException, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException {
+		Geometry geom = reader.read(WKT);
+		//Test shapefile has SRID=2180
+		geom.setSRID(2179);
+		dao.updateFeatureGeometry(1L, geom, LAYER_NAME);
+	}
+	
+	@Test()
+	public void updateFeatureGeometry_properGeometry_shouldUpdateGeometry() throws ParseException, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
+		Geometry geom = reader.read(WKT);
+		dao.updateFeatureGeometry(1L, geom, LAYER_NAME);
+		dao.updateFeatureGeometry(2L, geom, LAYER_NAME);
+		Feature feature1 = dao.getFeatureById(1L, LAYER_NAME);
+		Feature feature2 = dao.getFeatureById(2L, LAYER_NAME);
+		assertEquals(geom.getCentroid().getX(), feature1.getGeom().getCentroid().getX(), 1);
+		assertEquals(geom.getCentroid().getY(), feature1.getGeom().getCentroid().getY(), 1);
+		assertEquals(geom.getCentroid().getX(), feature2.getGeom().getCentroid().getX(), 1);
+		assertEquals(geom.getCentroid().getY(), feature2.getGeom().getCentroid().getY(), 1);
+	}
+	
+	//TODO addd tests for CRU:
+	// - id not found
+	// - layername not found
 
+	// D
 }
