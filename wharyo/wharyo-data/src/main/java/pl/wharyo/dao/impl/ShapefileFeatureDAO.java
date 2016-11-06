@@ -15,7 +15,6 @@ import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
-import org.geotools.data.FeatureStore;
 import org.geotools.data.Query;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -41,12 +40,10 @@ import org.opengis.filter.sort.SortOrder;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.StringUtils;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-import pl.wharyo.dao.DAO;
 import pl.wharyo.dao.FeatureDAO;
 import pl.wharyo.exceptions.BrokenFeatureException;
 import pl.wharyo.exceptions.LayerConfigurationBrokenException;
