@@ -30,7 +30,7 @@ public interface FeatureDAO {
 	public void updateFeatureGeometry(Long id, Geometry geometry, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException;
 	
 	// D
-	public void deleteFeature(Long id, String laterName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;
+	public void deleteFeature(Long id, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;
 	
 	public boolean supportsLayer(String layerName);
 }

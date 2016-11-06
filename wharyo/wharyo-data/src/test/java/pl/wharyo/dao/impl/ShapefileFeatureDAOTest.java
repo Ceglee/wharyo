@@ -403,7 +403,30 @@ public class ShapefileFeatureDAOTest {
 		assertEquals(null, feature.getAttribute("date").getValue());
 	}
 	
+	@Test
+	public void updateFeatureAttributes_idNotExists_shouldDoNothing() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		
+		Attribute textAttr = new Attribute("name", AttributeType.TEXT);
+		textAttr.setValue("test");
+		
+		Attribute doubleAttr = new Attribute("count", AttributeType.DOUBLE);
+		doubleAttr.setValue(4.44);
+		Attribute dateAttr = new Attribute("date", AttributeType.DATE);
+		
+		Calendar calendar = new GregorianCalendar(2000, 1, 1);
+		dateAttr.setValue(calendar.getTime());
+		
+		attributes.add(textAttr);
+		attributes.add(doubleAttr);
+		attributes.add(dateAttr);
+		dao.updateFeatureAttributes(4L, attributes, LAYER_NAME);
+		Feature feature = dao.getFeatureById(4L, LAYER_NAME);
+		assertNull(feature);
+	}
+	
 	// update gemoetry test
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void updateFeatureGeometry_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, ParseException, BrokenFeatureException {
 		Geometry geom = reader.read(WKT);
@@ -441,7 +464,7 @@ public class ShapefileFeatureDAOTest {
 		dao.updateFeatureGeometry(1L, geom, LAYER_NAME);
 	}
 	
-	@Test()
+	@Test
 	public void updateFeatureGeometry_properGeometry_shouldUpdateGeometry() throws ParseException, LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType {
 		Geometry geom = reader.read(WKT);
 		dao.updateFeatureGeometry(1L, geom, LAYER_NAME);
@@ -454,9 +477,46 @@ public class ShapefileFeatureDAOTest {
 		assertEquals(geom.getCentroid().getY(), feature2.getGeom().getCentroid().getY(), 1);
 	}
 	
-	//TODO addd tests for CRU:
-	// - id not found
-	// - layername not found
-
-	// D
+	@Test
+	public void updateFeatureGeometry_idNotExists_shouldDoNothing() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException, UnsupportedAttributeType, ParseException {
+		Geometry geom = reader.read(WKT);
+		dao.updateFeatureGeometry(4L, geom, LAYER_NAME);
+		Feature feature = dao.getFeatureById(4L, LAYER_NAME);
+		assertNull(feature);
+	}
+	
+	// delete feature test
+	
+	@Test(expected=IllegalArgumentException.class) 
+	public void deleteFeature_nullId_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		dao.deleteFeature(null, LAYER_NAME);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void deleteFeature_nullLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		dao.deleteFeature(1L, null);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void deleteFeature_emptyLayerName_shouldThrowException() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		dao.deleteFeature(1L, "");
+	}
+	
+	@Test
+	public void deleteFeature_idExists_shouldDeleteFeature() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, UnsupportedAttributeType {
+		Feature feature = dao.getFeatureById(1L, LAYER_NAME);
+		assertNotNull(feature);
+		dao.deleteFeature(1L, LAYER_NAME);
+		Feature removedFeature = dao.getFeatureById(1L, LAYER_NAME);
+		assertNull(removedFeature);
+	}
+	
+	@Test
+	public void deleteFeature_idExists_shouldDoNothing() throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, UnsupportedAttributeType {
+		dao.deleteFeature(4L, LAYER_NAME);
+		assertNotNull(dao.getFeatureById(1L, LAYER_NAME));
+		assertNotNull(dao.getFeatureById(2L, LAYER_NAME));
+		assertNotNull(dao.getFeatureById(3L, LAYER_NAME));
+		
+	}
 }

@@ -301,9 +301,33 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 		}
 	}
 
-	public void deleteFeature(Long id, String laterName) {
-		// TODO Auto-generated method stub
+	public void deleteFeature(Long id, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException {
+		if (id == null) {
+			throw new IllegalArgumentException("Feature id cannot be null");
+		} else if (StringUtils.isEmpty(layerName)) {
+			throw new IllegalArgumentException("LayerName parameter cannot be null or empty string");
+		}
 		
+		DataStore dStore = createDataStore(layerName);
+		SimpleFeatureStore fStore = createFeatureStore(dStore, layerName);
+		
+		try {
+			Transaction transaction = new DefaultTransaction("wharyo_full_lock");
+			fStore.setTransaction(transaction);
+			try {
+				fStore.removeFeatures(CQL.toFilter("id = " + id));
+				transaction.commit();
+			} catch (IOException e) {
+				transaction.rollback();
+			} finally {
+				transaction.close();
+			}
+		} catch (CQLException e) {
+			logger.error("No id filed found for shapefile: " + layerName);
+			throw new LayerConfigurationBrokenException("Coulnd't find proper id field in shapefile " + layerName, LayerConfigurationBrokenException.Reason.INVALID_ID_FIELD);
+		} catch (IOException e) {
+			// Transaction rollback/close fail
+		}
 	}
 	
 	public boolean supportsLayer(String layerName) {
