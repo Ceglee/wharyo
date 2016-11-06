@@ -1,6 +1,7 @@
 package pl.wharyo.dao.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -49,7 +50,7 @@ public class ShapefileFeatureDAOTest {
 	public void setUp() throws Exception {
 		clearShp();
 		copyShp();
-		dao = new ShapefileFeatureDAO(null, "src/test/resources/test_shapefile_copy");
+		dao = new ShapefileFeatureDAO("src/test/resources/test_shapefile_copy");
 		geomFactory = JTSFactoryFinder.getGeometryFactory();
 		reader = new WKTReader();
 	}
@@ -518,5 +519,27 @@ public class ShapefileFeatureDAOTest {
 		assertNotNull(dao.getFeatureById(2L, LAYER_NAME));
 		assertNotNull(dao.getFeatureById(3L, LAYER_NAME));
 		
+	}
+	
+	// support layer
+	
+	@Test
+	public void supportsLayer_nullLayerName_shouldReturnFalse() {
+		assertFalse(dao.supportsLayer(null));
+	}
+	
+	@Test
+	public void supportsLayer_emptyLayerName_shouldReturnFalse() {
+		assertFalse(dao.supportsLayer(""));
+	}
+	
+	@Test
+	public void supportsLayer_layerNameExists_shouldReturnTrue() {
+		assertTrue(dao.supportsLayer(LAYER_NAME));
+	}
+	
+	@Test
+	public void supportsLayer_layerNameDoesNotExist_shouldReturnFalse() {
+		assertFalse(dao.supportsLayer("fake_layer_name"));
 	}
 }

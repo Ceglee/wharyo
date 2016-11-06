@@ -2,6 +2,8 @@ package pl.wharyo.dao;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.Cacheable;
+
 import com.vividsolutions.jts.geom.Geometry;
 
 import pl.wharyo.exceptions.BrokenFeatureException;
@@ -32,5 +34,6 @@ public interface FeatureDAO {
 	// D
 	public void deleteFeature(Long id, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException;
 	
+	@Cacheable
 	public boolean supportsLayer(String layerName);
 }

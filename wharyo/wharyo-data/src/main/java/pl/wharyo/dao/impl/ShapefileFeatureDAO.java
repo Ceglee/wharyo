@@ -40,6 +40,7 @@ import org.opengis.filter.sort.SortBy;
 import org.opengis.filter.sort.SortOrder;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.StringUtils;
 
@@ -55,17 +56,16 @@ import pl.wharyo.model.Feature;
 import pl.wharyo.model.attributes.Attribute;
 import pl.wharyo.model.attributes.AttributeType;
 
-public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
+public class ShapefileFeatureDAO implements FeatureDAO {
 
 	private final String SHP_HOME;
 	private static final Logger logger = Logger.getLogger(ShapefileFeatureDAO.class);
 	
-	public ShapefileFeatureDAO(JdbcTemplate template, URI uri) {
-		this(template, uri.getPath());
+	public ShapefileFeatureDAO( URI uri) {
+		this(uri.getPath());
 	}
 	
-	public ShapefileFeatureDAO(JdbcTemplate template, String shapeHomeDirectory) {
-		super(template);
+	public ShapefileFeatureDAO(String shapeHomeDirectory) {
 		SHP_HOME = shapeHomeDirectory;
 		try {
 			Class.forName("org.geotools.referencing.crs.EPSGCRSAuthorityFactory");
@@ -330,18 +330,20 @@ public class ShapefileFeatureDAO extends DAO implements FeatureDAO {
 		}
 	}
 	
+	@Cacheable
 	public boolean supportsLayer(String layerName) {
 		if(StringUtils.isEmpty(layerName)) {
 			return false;
 		}
-		String[] args = {layerName, "SHAPEFILE"};
-		String query = "SELECT count(*) FROM layer_config WHERE layer_name = ? AND layer_type = ?";
-		Integer count = getTemplate().queryForObject(query, args, Integer.class);
-		if (count > 0) {
-			return true;
-		} else {
-			return false;
-		}
+		File dir = new File(this.SHP_HOME);
+		if (dir.isDirectory()) {
+			for (String layerDir : dir.list()) {
+				if (layerDir.equalsIgnoreCase(layerName)) {
+					return true;
+				}
+			}
+		} 
+		return false;
 	}
 	
 	private DataStore createDataStore(String layerName) throws LayerDataSourceNotAvailableException {
