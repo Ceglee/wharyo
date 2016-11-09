@@ -6,15 +6,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-import pl.wharyo.dao.DAO;
 import pl.wharyo.dao.FeatureDAO;
 import pl.wharyo.model.Feature;
 import pl.wharyo.model.attributes.Attribute;
 
-public class WfsFeatureDAO extends DAO implements FeatureDAO {
+public class WfsFeatureDAO implements FeatureDAO {
 
 	public WfsFeatureDAO(JdbcTemplate template) {
-		super(template);
 		// TODO Auto-generated constructor stub
 	}
 

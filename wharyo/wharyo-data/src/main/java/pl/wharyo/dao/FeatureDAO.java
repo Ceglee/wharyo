@@ -22,7 +22,7 @@ import pl.wharyo.model.attributes.Attribute;
 public interface FeatureDAO {
 
 	// C
-	public Long createFeature(Feature feature, String layer) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException;
+	public Long createFeature(Feature feature, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, BrokenFeatureException;
 	
 	// R
 	public Feature getFeatureById(Long id, String layerName) throws LayerDataSourceNotAvailableException, LayerConfigurationBrokenException, UnsupportedAttributeType;
